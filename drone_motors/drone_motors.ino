@@ -1,3 +1,5 @@
+#include <ArduinoBLE.h>
+
 #include <Arduino_LSM9DS1.h>
 
 #include "mbed.h"
@@ -75,16 +77,60 @@ float pid_p_y=0;
 float pid_i_y=0;
 float pid_d_y=0;
 
-double kp=3.55;//3.55
-double ki=0.005;//0.003
-double kd=2.05;//2.05
+double kp=3;//3.55
+double ki=0.003;//0.003
+double kd=1.5;//2.05
 
 int throttle=1000;
 float desired_angle = 0;
 
+BLEService droneControl("19B10010-E8F2-537E-4F6C-D104768A1214"); // create service
+
+// create switch characteristic and allow remote device to read and write
+BLEByteCharacteristic droneStart("19B10010-E8F2-537E-4F6C-D104768A1215", BLERead | BLEWrite);
+BLEByteCharacteristic droneMovement("19B10010-E8F2-537E-4F6C-D104768A1216", BLERead | BLEWrite);
+BLEByteCharacteristic droneStop("19B10010-E8F2-537E-4F6C-D104768A1217", BLERead | BLEWrite);
+
+
 Drone myDrone;
 
+
+
+
+
 void setup(){
+  Serial.begin(9600);
+  while (!Serial);
+
+    // begin initialization
+  if (!BLE.begin()) {
+    Serial.println("starting BLE failed!");
+    while (1);
+  }
+  
+  BLE.setLocalName("Drone Controls");
+  BLE.setAdvertisedService(droneControl);
+
+  // add the characteristics to the service
+  droneControl.addCharacteristic(droneStart);
+  droneControl.addCharacteristic(droneMovement);
+  droneControl.addCharacteristic(droneStop);
+
+  // add the service
+  BLE.addService(droneControl);
+
+  droneStart.writeValue(1);
+  droneMovement.writeValue(0);
+  droneStop.writeValue(0);
+
+  // start advertising
+  BLE.advertise();
+
+  Serial.println("Waiting for start");
+  while(droneStart.value()){
+    BLE.poll();
+  }
+  Serial.println("Arming motors");
   current_time = millis();
   Serial.begin(9600);
   if (!IMU.begin()) {
@@ -92,7 +138,6 @@ void setup(){
     while (1);
   }
   myDrone.calibrate();
-  //myDrone.motorSpeedAll(5);
   delay(3000);
 
 }
@@ -118,7 +163,7 @@ void loop(){
   }
 
   gyro_x = raw_gyro_x;
-  gyro_y =raw_gyro_y;
+  gyro_y = raw_gyro_y;
 
     /*---X axis angle---*/
    total_angle_x = 0.98 *(total_angle_x + gyro_x*elapsedTime) + 0.02*accel_x;
@@ -192,6 +237,7 @@ Serial.println(motora);
 Serial.println(motorb);
 Serial.println(motorc);
 Serial.println(motord);
+
 
 myDrone.motorSpeed(motora, motorb, motorc, motord);
 
