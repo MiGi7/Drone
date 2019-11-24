@@ -143,6 +143,18 @@ void setup(){
 }
 
 void loop(){
+  BLE.poll();
+  if (droneMovement.value()){
+    throttle = throttle + 25;
+    droneMovement.writeValue(0);
+  }
+  if(droneStop.value()){
+    Serial.println("Drone has been stopped!");
+    myDrone.motorSpeedAll(0);
+    while(droneStop.value()){
+      BLE.poll();
+    }
+  }
 
     timePrev = current_time;  // the previous time is stored before the actual time read
     current_time = millis();  // actual time read
@@ -233,6 +245,22 @@ if (motord < 1000){
   motord = 1000;
 }
 
+if (motora > 1500){
+  motora = 1500;
+}
+
+if (motorb > 1500){
+  motorb = 1500;
+}
+
+if (motorc > 1500){
+  motorc = 1500;
+}
+
+if (motord > 1500){
+  motord = 1500;
+}
+
 Serial.println(motora);
 Serial.println(motorb);
 Serial.println(motorc);
@@ -240,13 +268,5 @@ Serial.println(motord);
 
 
 myDrone.motorSpeed(motora, motorb, motorc, motord);
-
-
-  //IMU.readAcceleration(raw_accel_x, raw_accel_y, raw_accel_z);
-  //int input_speed = map(analogRead(A0), 0, 1023, 0, 100);
-  //myDrone.motorSpeedAll(input_speed);
-  //Serial.print("Current Motor speed: ");
-  //Serial.print(input_speed);
-  //Serial.println("%");
 
 }
