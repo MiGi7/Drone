@@ -77,9 +77,9 @@ float pid_p_y=0;
 float pid_i_y=0;
 float pid_d_y=0;
 
-double kp=3;//3.55
+double kp=0.1;//3.55
 double ki=0.003;//0.003
-double kd=1.5;//2.05
+double kd=0.1;//2.05
 
 int throttle=1000;
 float desired_angle = 0;
@@ -100,7 +100,7 @@ Drone myDrone;
 
 void setup(){
   Serial.begin(9600);
-  while (!Serial);
+ // while (!Serial);
 
     // begin initialization
   if (!BLE.begin()) {
@@ -222,6 +222,22 @@ if(PIDy > 1000)
   PIDy=1000;
 }
 
+
+if (PIDx > 150){
+  PIDx = 150;
+}
+
+if (PIDx < -150){
+  PIDx = -150;
+}
+
+if (PIDy > 150){
+  PIDy = 150;
+}
+
+if (PIDy < -150){
+  PIDy = -150;
+}
 
 int motora  = throttle + PIDx;
 int motorb = throttle - PIDx;
