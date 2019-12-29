@@ -18,21 +18,22 @@ class Drone {
 
     bool calibrate(){
     
-      motor1.period_ms(20);
-      motor2.period_ms(20);
-      motor3.period_ms(20);
-      motor4.period_ms(20);
-    
+      motor1.period_ms(10);
+      motor2.period_ms(10);
+      motor3.period_ms(10);
+      motor4.period_ms(10); 
+
+      delay(500);
       motor1.pulsewidth_ms(2);
       motor2.pulsewidth_ms(2);
       motor3.pulsewidth_ms(2);
       motor4.pulsewidth_ms(2);
-      delay(2000);
+      delay(3000);
       motor1.pulsewidth_ms(1);
       motor2.pulsewidth_ms(1);
       motor3.pulsewidth_ms(1);
       motor4.pulsewidth_ms(1);
-      delay(3000);
+      delay(1000);
     
       return true;
     }
@@ -77,9 +78,9 @@ float pid_p_y=0;
 float pid_i_y=0;
 float pid_d_y=0;
 
-double kp=0.1;//3.55
-double ki=0.003;//0.003
-double kd=0.1;//2.05
+double kp=2.5;//3.55
+double ki=0.025;//0.003
+double kd=0.00;//2.05
 
 int throttle=1000;
 float desired_angle = 0;
@@ -89,14 +90,20 @@ BLEService droneControl("19B10010-E8F2-537E-4F6C-D104768A1214"); // create servi
 // create switch characteristic and allow remote device to read and write
 BLEByteCharacteristic droneStart("19B10010-E8F2-537E-4F6C-D104768A1215", BLERead | BLEWrite);
 BLEByteCharacteristic droneMovement("19B10010-E8F2-537E-4F6C-D104768A1216", BLERead | BLEWrite);
-BLEByteCharacteristic droneStop("19B10010-E8F2-537E-4F6C-D104768A1217", BLERead | BLEWrite);
+BLEByteCharacteristic droneMovementSlow("19B10010-E8F2-537E-4F6C-D104768A1217", BLERead | BLEWrite);
+BLEByteCharacteristic droneStop("19B10010-E8F2-537E-4F6C-D104768A1218", BLERead | BLEWrite);
 
 
 Drone myDrone;
 
+  //usb
 
-
-
+//a     c
+// \   /
+//  \ /
+//  / \
+// /   \
+//d     b
 
 void setup(){
   Serial.begin(9600);
@@ -114,13 +121,15 @@ void setup(){
   // add the characteristics to the service
   droneControl.addCharacteristic(droneStart);
   droneControl.addCharacteristic(droneMovement);
+  droneControl.addCharacteristic(droneMovementSlow);
   droneControl.addCharacteristic(droneStop);
 
   // add the service
   BLE.addService(droneControl);
 
-  droneStart.writeValue(1);
+  droneStart.writeValue(1);  //needs to be 1 for flight
   droneMovement.writeValue(0);
+  droneMovementSlow.writeValue(0);
   droneStop.writeValue(0);
 
   // start advertising
@@ -145,8 +154,13 @@ void setup(){
 void loop(){
   BLE.poll();
   if (droneMovement.value()){
-    throttle = throttle + 25;
+    throttle = throttle + 30;
     droneMovement.writeValue(0);
+  }
+
+  if (droneMovementSlow.value()){
+    throttle = throttle - 20;
+    droneMovementSlow.writeValue(0);
   }
   if(droneStop.value()){
     Serial.println("Drone has been stopped!");
@@ -165,7 +179,7 @@ void loop(){
   }
 
   //X angle
-  gyro_x = atan((raw_accel_y)/sqrt(pow((raw_accel_x),2) + pow((raw_accel_z),2)))*rad_to_deg;
+  accel_x = atan((raw_accel_y)/sqrt(pow((raw_accel_x),2) + pow((raw_accel_z),2)))*rad_to_deg;
 
   accel_y = atan(-1*(raw_accel_x)/sqrt(pow((raw_accel_y),2) + pow((raw_accel_z),2)))*rad_to_deg;
 
@@ -204,6 +218,9 @@ void loop(){
  PIDx = pid_p_x + pid_i_x + pid_d_x;
  PIDy = pid_p_y + pid_i_y + pid_d_y;
 
+
+
+
  if(PIDx < -1000)
 {
   PIDx=-1000;
@@ -223,27 +240,47 @@ if(PIDy > 1000)
 }
 
 
-if (PIDx > 150){
-  PIDx = 150;
+if (PIDx > 100){
+  PIDx = 100;
 }
 
-if (PIDx < -150){
-  PIDx = -150;
+if (PIDx < -100){
+  PIDx = -100;
 }
 
-if (PIDy > 150){
-  PIDy = 150;
+if (PIDy > 100){
+  PIDy = 100;
 }
 
-if (PIDy < -150){
-  PIDy = -150;
+if (PIDy < -100){
+  PIDy = -100;
 }
 
-int motora  = throttle + PIDx;
-int motorb = throttle - PIDx;
+int motora, motorb, motorc, motord;
+//PIDx = PIDx / 3;
+//PIDy = PIDy / 3;
 
-int motorc  = throttle + PIDy;
-int motord = throttle - PIDy;
+
+if (throttle >= 1000){
+  motora  = throttle - PIDx;
+  motord = throttle - PIDx;
+  
+  motorc  = throttle + PIDx;
+  motorb = throttle + PIDx;
+  
+  motora = motora - PIDy;
+  motorb = motorb - PIDy;
+  
+  motorc = motorc + PIDy;
+  motord = motord + PIDy;  
+} else {
+  motora  = throttle;
+  motord = throttle;
+  
+  motorc  = throttle;
+  motorb = throttle;
+  }
+
 
 if (motora < 1000){
   motora = 1000;
@@ -281,7 +318,6 @@ Serial.println(motora);
 Serial.println(motorb);
 Serial.println(motorc);
 Serial.println(motord);
-
 
 myDrone.motorSpeed(motora, motorb, motorc, motord);
 
