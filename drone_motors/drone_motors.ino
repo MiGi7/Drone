@@ -14,7 +14,7 @@ class Drone {
     mbed::PwmOut motor3; //Pin D4
     mbed::PwmOut motor4; //Pin D5
 
-    Drone() : motor1 (P1_11), motor2 (P1_12), motor3(P1_15), motor4(P1_13){}
+    Drone() : motor1(P1_11), motor2(P1_12), motor3(P1_15), motor4(P1_13){}
 
     bool calibrate(){
     
