@@ -4,6 +4,14 @@
 
 #include "mbed.h"
 
+#define PIN_LED     (13u)
+#define LED_BUILTIN PIN_LED
+#define LEDR        (22u)
+#define LEDG        (23u)
+#define LEDB        (24u)
+#define LED_PWR     (25u)
+
+
 class Drone {
   // Commands a drone with 4 motors using servo and calibrate the ESC. Sets
   //motor pins at 2, 3, 4 and 5
@@ -60,6 +68,7 @@ class Drone {
 
 };
 
+
 float raw_gyro_x, raw_gyro_y, raw_gyro_z, raw_accel_x, raw_accel_y, raw_accel_z;
 
 float gyro_x, gyro_y, accel_x, accel_y;
@@ -105,10 +114,38 @@ Drone myDrone;
 // /   \
 //d     b
 
-void setup(){
-  Serial.begin(9600);
- // while (!Serial);
 
+void ledLight(int color){
+  //blue
+  if (color == 1){
+    digitalWrite(LEDG, HIGH); 
+    digitalWrite(LEDB, LOW);
+    digitalWrite(LEDR, HIGH); 
+    //green
+  } else if (color == 2){
+    digitalWrite(LEDG, LOW); 
+    digitalWrite(LEDB, HIGH);
+    digitalWrite(LEDR, HIGH);
+    //red
+  } else {
+    digitalWrite(LEDG, HIGH); 
+    digitalWrite(LEDB, HIGH);
+    digitalWrite(LEDR, LOW);
+  }
+}
+
+void setup(){
+  pinMode(LEDR, OUTPUT);
+  pinMode(LEDG, OUTPUT);
+  pinMode(LEDB, OUTPUT);
+  
+  ledLight(3);
+  ledLight(1);
+  ledLight(3);
+
+  Serial.begin(9600);
+  while (!Serial);
+  Serial.println("Serial Port Started");
     // begin initialization
   if (!BLE.begin()) {
     Serial.println("starting BLE failed!");
@@ -131,14 +168,17 @@ void setup(){
   droneMovement.writeValue(0);
   droneMovementSlow.writeValue(0);
   droneStop.writeValue(0);
-
+  ledLight(3);
   // start advertising
   BLE.advertise();
 
+  ledLight(1);
+  
   Serial.println("Waiting for start");
   while(droneStart.value()){
     BLE.poll();
   }
+  ledLight(2);
   Serial.println("Arming motors");
   current_time = millis();
   Serial.begin(9600);
@@ -148,7 +188,6 @@ void setup(){
   }
   myDrone.calibrate();
   delay(3000);
-
 }
 
 void loop(){
@@ -169,7 +208,6 @@ void loop(){
       BLE.poll();
     }
   }
-
     timePrev = current_time;  // the previous time is stored before the actual time read
     current_time = millis();  // actual time read
     elapsedTime = (current_time - timePrev) / 1000; 
